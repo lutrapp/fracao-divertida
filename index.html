@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Frações Mágicas</title>
+    <style>
+        :root {
+            --pizza-color: #e74c3c;
+            --choco-color: #6d4c41;
+            --bg-color: #f0f7f4;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            color: #333;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px; /* Largura ideal para celular */
+            background: var(--card-bg);
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        h1 { font-size: 1.5rem; text-align: center; color: #2c3e50; margin-bottom: 10px; }
+
+        /* Controles Estilizados */
+        .card-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+
+        .btn-group { display: flex; gap: 5px; background: #eee; padding: 4px; border-radius: 10px; }
+        
+        button {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .active { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: var(--pizza-color); }
+        
+        .math-input {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            margin: 15px 0;
+        }
+
+        input {
+            width: 60px;
+            height: 40px;
+            text-align: center;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            -webkit-appearance: none; /* Remove estilo iOS */
+        }
+
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background: #27ae60;
+            color: white;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        #infoText {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: center;
+            margin: 10px 0;
+            min-height: 1.2rem;
+        }
+
+        /* Área de Desenho */
+        .canvas-container {
+            width: 100%;
+            overflow-x: auto; /* Scroll lateral se a fração for gigante */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+            background: #fff;
+        }
+
+        .label-tag {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #95a5a6;
+            margin-bottom: 5px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>🍕 Laboratório Maker 🍫</h1>
+
+    <div class="card-controls">
+        <div class="row">
+            <span class="label-tag">Modo:</span>
+            <div class="btn-group">
+                <button id="btn-view" class="active" onclick="setMode('view')">Visualizar</button>
+                <button id="btn-add" onclick="setMode('add')">SOMA</button>
+                <button id="btn-sub" onclick="setMode('sub')">SUBTRAÇÃO</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <span class="label-tag">Escolha:</span>
+            <div class="btn-group">
+                <button id="btn-pizza" class="active" onclick="setFood('pizza')">Pizza</button>
+                <button id="btn-choco" onclick="setFood('choco')">Chocolate</button>
+            </div>
+        </div>
+
+        <div class="math-input">
+            <input type="text" id="f1" value="1/2" inputmode="text">
+            <span id="opSign" style="display:none">+</span>
+            <input type="text" id="f2" value="1/4" style="display:none" inputmode="text">
+        </div>
+
+        <button class="btn-calc" onclick="run()">Cozinhar agora!</button>
+        <div id="infoText"></div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="canvas" width="400" height="550"></canvas>
+    </div>
+</div>
+
+<script>
+    let currentMode = 'view';
+    let currentFood = 'pizza';
+    let animFrame = null;
+
+    function setMode(m) {
+        currentMode = m;
+        ['view', 'add', 'sub'].forEach(x => document.getElementById('btn-'+x).classList.remove('active'));
+        document.getElementById('btn-'+m).classList.add('active');
+        document.getElementById('f2').style.display = m === 'view' ? 'none' : 'block';
+        document.getElementById('opSign').style.display = m === 'view' ? 'none' : 'block';
+        document.getElementById('opSign').innerText = m === 'add' ? '+' : '-';
+    }
+
+    function setFood(f) {
+        currentFood = f;
+        ['pizza', 'choco'].forEach(x => document.getElementById('btn-'+x).classList.remove('active'));
+        document.getElementById('btn-'+f).classList.add('active');
+    }
+
+    function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+    function lcm(a, b) { return (a * b) / gcd(a, b); }
+
+    function run() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        const f1 = parse('f1');
+        const f2 = parse('f2');
+        const denComum = currentMode === 'view' ? f1.d : lcm(f1.d, f2.d);
+        
+        const n1Adj = f1.n * (denComum / f1.d);
+        const n2Adj = f2.n * (denComum / f2.d);
+
+        if (currentMode !== 'view') {
+            document.getElementById('infoText').innerText = `Transformamos tudo em ${denComum} fatias!`;
+        } else {
+            document.getElementById('infoText').innerText = "";
+        }
+
+        animate(n1Adj, n2Adj, denComum);
+    }
+
+    function parse(id) {
+        const parts = document.getElementById(id).value.split('/');
+        return { n: parseInt(parts[0]) || 0, d: parseInt(parts[1]) || 1 };
+    }
+
+    function animate(n1, n2, den) {
+        let progress = 0;
+        const ctx = document.getElementById('canvas').getContext('2d');
+
+        function drawFrame() {
+            progress += 0.02;
+            if (progress > 1) progress = 1;
+            ctx.clearRect(0, 0, 400, 550);
+
+            // Coordenadas verticais para Mobile
+            drawVisual(ctx, 200, 80, n1, den, "Fração 1", 0.8);
+            
+            if (currentMode !== 'view') {
+                drawVisual(ctx, 200, 240, n2, den, "Fração 2", 0.8);
+                const currentRes = currentMode === 'add' ? (n1 + n2 * progress) : (n1 - n2 * progress);
+                drawVisual(ctx, 200, 420, currentRes, den, "RESULTADO", 1.0);
+            } else {
+                drawVisual(ctx, 200, 240, n1 * progress, den, "VISUALIZAÇÃO", 1.0);
+            }
+
+            if (progress < 1) animFrame = requestAnimationFrame(drawFrame);
+        }
+        drawFrame();
+    }
+
+    function drawVisual(ctx, cx, cy, n, d, label, scale) {
+        const size = 50 * scale;
+        const numItems = Math.ceil(Math.max(n, d) / d);
+        
+        ctx.fillStyle = "#2c3e50";
+        ctx.font = `bold ${14 * scale}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(`${label} (${(Math.round(n*10)/10)}/${d})`, cx, cy - size - 10);
+
+        for (let f = 0; f < numItems; f++) {
+            const posX = cx + (f - (numItems-1)/2) * (size * 2.5);
+            
+            if (currentFood === 'pizza') {
+                ctx.beginPath();
+                ctx.arc(posX, cy, size, 0, Math.PI * 2);
+                ctx.fillStyle = "#fcf3cf"; ctx.fill();
+                ctx.strokeStyle = "#d35400"; ctx.lineWidth = 2; ctx.stroke();
+
+                for (let i = 0; i < d; i++) {
+                    const s = (i * 2 * Math.PI) / d, e = ((i+1) * 2 * Math.PI) / d;
+                    const fill = Math.max(0, Math.min(1, n - (f * d + i)));
+                    if (fill > 0) {
+                        ctx.beginPath(); ctx.moveTo(posX, cy);
+                        ctx.arc(posX, cy, size, s, s + (e - s) * fill);
+                        ctx.fillStyle = "#e74c3c"; ctx.fill();
+                    }
+                    ctx.beginPath(); ctx.moveTo(posX, cy);
+                    ctx.lineTo(posX + Math.cos(s)*size, cy + Math.sin(s)*size);
+                    ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
+                }
+            } else {
+                const w = size * 2, h = size;
+                ctx.fillStyle = "#eee"; ctx.fillRect(posX - size, cy - h/2, w, h);
+                const pw = w / d;
+                for (let i = 0; i < d; i++) {
+                    const fill = Math.max(0, Math.min(1, n - (f * d + i)));
+                    if (fill > 0) {
+                        ctx.fillStyle = "#6d4c41";
+                        ctx.fillRect(posX - size + (i * pw), cy - h/2, pw * fill, h);
+                    }
+                    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+                    ctx.strokeRect(posX - size + (i * pw), cy - h/2, pw, h);
+                }
+                ctx.strokeStyle = "#3e2723"; ctx.strokeRect(posX - size, cy - h/2, w, h);
+            }
+        }
+    }
+    run();
+</script>
+</body>
+</html>
