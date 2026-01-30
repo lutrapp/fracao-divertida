@@ -2,205 +2,628 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mestre das Frações</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #fffdec; font-family: 'Comic Sans MS', cursive, sans-serif; color: #4e342e; }
-        .main-card { background: white; border-radius: 30px; box-shadow: 0 15px 45px rgba(211, 84, 0, 0.15); border: 4px solid #fce4ec; }
-        .header { background: #ff9800; color: white; border-radius: 25px 25px 5px 5px; padding: 20px; }
+        body { 
+            background-color: #FFF8E1; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: #5D4037; 
+            overflow-x: hidden;
+        }
         
-        .math-zone { background: #f8f9fa; border-radius: 20px; padding: 20px; margin-bottom: 20px; }
-        .fraction-input { width: 90px !important; font-size: 1.5rem; text-align: center; border: 3px solid #ffcc80; border-radius: 15px !important; color: #e65100; }
-        
-        canvas { width: 100%; max-width: 600px; height: auto; display: block; margin: 0 auto; }
-        
-        .equivalence-text { font-size: 1.2rem; font-weight: bold; color: #2e7d32; min-height: 1.5rem; margin-bottom: 5px; }
-        
-        .btn-custom { border-radius: 15px; font-weight: bold; padding: 10px 20px; transition: 0.3s; }
-        .btn-pizza { background-color: #ff5722; color: white; }
-        .btn-choco { background-color: #5d4037; color: white; }
-        .btn-calc { background-color: #4caf50; color: white; font-size: 1.2rem; border-bottom: 5px solid #388e3c; }
-        .btn-calc:active { border-bottom: 0; transform: translateY(4px); }
+        .main-card { 
+            background: white; 
+            border-radius: 25px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            border-bottom: 6px solid #FFECB3;
+            margin-top: 10px;
+            padding-bottom: 10px;
+        }
 
-        footer { font-family: sans-serif; color: #a1887f; margin-top: 20px; font-size: 0.9rem; }
+        .header { 
+            background: linear-gradient(135deg, #FF9800, #F57C00); 
+            color: white; 
+            border-radius: 20px 20px 5px 5px; 
+            padding: 15px; 
+            margin-bottom: 15px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            background: #fff3e0;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .fraction-input { 
+            width: 75px !important; 
+            font-size: 1.3rem; 
+            text-align: center; 
+            border: 2px solid #FFB74D; 
+            border-radius: 12px !important; 
+            color: #E65100; 
+            font-weight: bold;
+            padding: 5px;
+            transition: all 0.3s;
+        }
+        
+        /* Animação de erro (tremida) */
+        .input-error {
+            border-color: #d32f2f !important;
+            background-color: #ffebee;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .op-sign { font-size: 1.5rem; font-weight: bold; color: #F57C00; }
+
+        .btn-cook { 
+            background: linear-gradient(to bottom, #4CAF50, #388E3C);
+            color: white; 
+            font-weight: bold;
+            border-radius: 50px;
+            border: none;
+            box-shadow: 0 4px 0 #2E7D32;
+            width: 100%;
+            padding: 10px;
+            transition: transform 0.1s;
+        }
+        .btn-cook:active { transform: translateY(4px); box-shadow: none; }
+
+        .btn-explain {
+            background: #FFF3E0;
+            color: #E65100;
+            font-weight: bold;
+            border-radius: 50px;
+            border: 2px solid #FFB74D;
+            padding: 5px 15px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-explain:hover { background: #FFE0B2; }
+
+        .visual-stage {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            min-height: 150px;
+        }
+
+        .fraction-box {
+            position: relative;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        canvas { 
+            width: 110px; 
+            height: 110px;
+            display: block;
+            margin: 0 auto;
+            filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.1));
+        }
+
+        .math-symbol {
+            font-size: 1.5rem;
+            color: #8D6E63;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+
+        .label-equiv {
+            font-size: 0.75rem;
+            color: #2E7D32;
+            background: #E8F5E9;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        /* Alerta Personalizado */
+        #errorMsg {
+            display: none;
+            background-color: #FFEBEE;
+            color: #C62828;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            border: 1px solid #FFCDD2;
+            font-weight: bold;
+        }
+
+        footer { font-size: 0.8rem; color: #a1887f; margin-top: 15px; }
+
+        @media (min-width: 500px) {
+            canvas { width: 140px; height: 140px; }
+            .fraction-input { width: 90px !important; }
+        }
     </style>
 </head>
-<body class="py-4">
+<body>
 
-<div class="container text-center">
-    <div class="main-card mx-auto" style="max-width: 700px;">
-        <div class="header">
-            <h1 class="h2 mb-0">🍕 Frações Divertidas 🍫</h1>
+<div class="container p-2">
+    <div class="main-card mx-auto" style="max-width: 600px;">
+        <div class="header text-center">
+            <h1 class="h5 mb-0 fw-bold">🍕 Cantina das Frações 🍫</h1>
         </div>
 
-        <div class="p-3 p-md-5">
-            <div class="row g-2 mb-4">
+        <div class="px-3">
+            <div class="row g-2 mb-3">
                 <div class="col-6">
-                    <select id="mode" class="form-select btn-custom" onchange="toggleInputs()">
-                        <option value="view">Apenas Ver</option>
-                        <option value="add">Somar (+)</option>
-                        <option value="sub">Subtrair (-)</option>
+                    <select id="mode" class="form-select form-select-sm shadow-none border-warning text-secondary fw-bold" onchange="updateUI()">
+                        <option value="view">👀 Só Ver</option>
+                        <option value="add">➕ Somar</option>
+                        <option value="sub">➖ Subtrair</option>
                     </select>
                 </div>
                 <div class="col-6">
-                    <select id="food" class="form-select btn-custom" onchange="run()">
-                        <option value="pizza">Estilo: Pizza</option>
-                        <option value="choco">Estilo: Chocolate</option>
+                    <select id="food" class="form-select form-select-sm shadow-none border-warning text-secondary fw-bold" onchange="run()">
+                        <option value="pizza">🍕 Pizza</option>
+                        <option value="choco">🍫 Choco</option>
                     </select>
                 </div>
             </div>
 
-            <div class="math-zone">
-                <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
-                    <input type="text" id="inp1" class="form-control fraction-input" value="1/2">
-                    <span id="opSign" class="h2 mb-0 d-none">+</span>
-                    <input type="text" id="inp2" class="form-control fraction-input d-none" value="1/4">
-                </div>
-                <button class="btn btn-calc w-100" onclick="run()">COZINHAR!</button>
+            <div id="errorMsg" class="text-center"></div>
+
+            <div class="controls-row">
+                <input type="text" id="inp1" class="fraction-input" value="1/2" inputmode="numeric" placeholder="1/2">
+                <span id="uiSign" class="op-sign d-none">+</span>
+                <input type="text" id="inp2" class="fraction-input d-none" value="1/3" inputmode="numeric" placeholder="1/3">
             </div>
 
-            <div id="display" class="mt-4">
-                <div class="mb-5">
-                    <div id="eq1" class="equivalence-text"></div>
-                    <canvas id="can1" width="500" height="200"></canvas>
+            <button class="btn btn-cook mb-4" onclick="run()">PREPARAR PEDIDO!</button>
+            
+            <div class="text-center mb-3">
+                <button id="btnExplain" class="btn-explain d-none" onclick="explain()">🤔 Me explique</button>
+            </div>
+
+            <div class="visual-stage" id="stage">
+                <div class="fraction-box">
+                    <div id="lbl1" class="label-equiv"></div>
+                    <canvas id="c1" width="300" height="300"></canvas>
                 </div>
-                <div id="block2" class="mb-5 d-none">
-                    <div id="eq2" class="equivalence-text"></div>
-                    <canvas id="can2" width="500" height="200"></canvas>
+
+                <div id="sym1" class="math-symbol d-none">+</div>
+
+                <div id="box2" class="fraction-box d-none">
+                    <div id="lbl2" class="label-equiv"></div>
+                    <canvas id="c2" width="300" height="300"></canvas>
                 </div>
-                <div>
-                    <div id="eq3" class="equivalence-text" style="color:#d32f2f">RESULTADO</div>
-                    <canvas id="can3" width="500" height="220"></canvas>
+
+                <div id="sym2" class="math-symbol d-none">=</div>
+
+                <div id="box3" class="fraction-box d-none">
+                    <div id="lbl3" class="label-equiv" style="background:#FFEBEE; color:#C62828">Resultado</div>
+                    <canvas id="c3" width="300" height="300"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer>Criado por <strong>Lu trapp + ia</strong></footer>
+    <footer class="text-center">
+        Criado por <strong>Lu Trapp + ia</strong>
+    </footer>
 </div>
 
-<script>
-    let anims = [];
+<!-- Modal de Explicação -->
+<div class="modal fade" id="explainModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 4px solid #FFB74D;">
+      <div class="modal-header" style="background-color: #FFF8E1; border-bottom: 2px solid #FFE0B2; border-radius: 16px 16px 0 0;">
+        <h5 class="modal-title fw-bold" style="color: #E65100;">💡 Como a gente resolveu?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="font-size: 1.1rem; color: #5D4037; line-height: 1.6;">
+        <div id="explainContent"></div>
+      </div>
+      <div class="modal-footer" style="border-top: none;">
+        <button type="button" class="btn btn-warning fw-bold text-white" data-bs-dismiss="modal" style="border-radius: 20px;">Entendi! 👍</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    function toggleInputs() {
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let animId = null;
+    let lastResult = null; // Para guardar o contexto da explicação
+
+    function updateUI() {
         const m = document.getElementById('mode').value;
-        document.getElementById('inp2').classList.toggle('d-none', m === 'view');
-        document.getElementById('opSign').classList.toggle('d-none', m === 'view');
-        document.getElementById('block2').classList.toggle('d-none', m === 'view');
-        document.getElementById('opSign').innerText = m === 'add' ? '+' : '-';
+        const isView = m === 'view';
+        
+        document.getElementById('inp2').classList.toggle('d-none', isView);
+        document.getElementById('uiSign').classList.toggle('d-none', isView);
+        document.getElementById('uiSign').innerText = m === 'add' ? '+' : '-';
+
+        document.getElementById('box2').classList.toggle('d-none', isView);
+        document.getElementById('box3').classList.toggle('d-none', isView);
+        document.getElementById('sym1').classList.toggle('d-none', isView);
+        document.getElementById('sym1').innerText = m === 'add' ? '+' : '-';
+        document.getElementById('sym2').classList.toggle('d-none', isView);
+        
+        // Esconde botão de explicação ao mudar modo, reaparece após 'run'
+        document.getElementById('btnExplain').classList.add('d-none');
+        
+        hideError(); // Limpa erros ao mudar o modo
+        run(); // Recalcula para atualizar a visualização
+    }
+
+    function parse(id) {
+        const el = document.getElementById(id);
+        const val = el.value.trim();
+        
+        // Remove estado de erro anterior
+        el.classList.remove('input-error');
+
+        // Se estiver vazio
+        if(!val) return { n:0, d:1, el: el };
+
+        let n, d;
+        if(val.includes('/')) {
+            const parts = val.split('/');
+            n = parseInt(parts[0]);
+            d = parseInt(parts[1]);
+        } else {
+            n = parseInt(val);
+            d = 1;
+        }
+
+        // Tratamento de NaN (se digitarem letras)
+        if(isNaN(n)) n = 0;
+        if(isNaN(d)) d = 1;
+
+        return { n: n, d: d, el: el };
+    }
+
+    function showError(msg, element) {
+        const errBox = document.getElementById('errorMsg');
+        errBox.innerText = "⚠️ " + msg;
+        errBox.style.display = 'block';
+        if(element) element.classList.add('input-error');
+    }
+
+    function hideError() {
+        document.getElementById('errorMsg').style.display = 'none';
+        document.querySelectorAll('.fraction-input').forEach(e => e.classList.remove('input-error'));
     }
 
     function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
     function lcm(a, b) { return (a * b) / gcd(a, b); }
 
     function run() {
-        anims.forEach(cancelAnimationFrame);
-        anims = [];
+        if (animId) cancelAnimationFrame(animId);
+        hideError();
         
-        const f1 = parse('inp1'), f2 = parse('inp2');
-        const m = document.getElementById('mode').value;
+        const f1 = parse('inp1');
+        const f2 = parse('inp2');
+        const mode = document.getElementById('mode').value;
         const food = document.getElementById('food').value;
-        
-        const commonDen = m === 'view' ? f1.d : lcm(f1.d, f2.d);
-        const n1Adj = f1.n * (commonDen / f1.d);
-        const n2Adj = f2.n * (commonDen / f2.d);
 
-        // Mostrar equivalências
-        document.getElementById('eq1').innerText = f1.d !== commonDen ? `${f1.n}/${f1.d} é igual a ${n1Adj}/${commonDen}` : `${f1.n}/${f1.d}`;
-        if(m !== 'view') {
-            document.getElementById('eq2').innerText = f2.d !== commonDen ? `${f2.n}/${f2.d} é igual a ${n2Adj}/${commonDen}` : `${f2.n}/${f2.d}`;
+        // --- REGRA MATEMÁTICA: DIVISÃO POR ZERO ---
+        if (f1.d === 0) {
+            showError("Não dá pra dividir por zero! O número de baixo não pode ser 0.", f1.el);
+            return; // Para o código aqui
+        }
+        if (mode !== 'view' && f2.d === 0) {
+            showError("Não dá pra dividir por zero! O número de baixo não pode ser 0.", f2.el);
+            return; // Para o código aqui
         }
 
-        animate(n1Adj, n2Adj, commonDen, m, food);
+        // --- REGRA MATEMÁTICA: ZERO NO NUMERADOR ---
+        // Se f1.n for 0, o desenho será vazio (correto visualmente).
+        // Nenhuma ação extra necessária, a matemática funciona (0/5 = 0).
+
+        const den = mode === 'view' ? f1.d : lcm(f1.d, f2.d);
+        const n1A = f1.n * (den / f1.d);
+        const n2A = f2.n * (den / f2.d);
+
+        // Labels
+        document.getElementById('lbl1').innerText = f1.d !== den ? `${f1.n}/${f1.d} = ${n1A}/${den}` : `${f1.n}/${f1.d}`;
+        
+        // Salva contexto para explicação
+        lastResult = {
+            f1: f1,
+            f2: f2,
+            n1A: n1A,
+            n2A: n2A,
+            commonDen: den,
+            mode: mode
+        };
+        
+        // Mostra botão de explicação
+        document.getElementById('btnExplain').classList.remove('d-none');
+
+        if (mode !== 'view') {
+            document.getElementById('lbl2').innerText = f2.d !== den ? `${f2.n}/${f2.d} = ${n2A}/${den}` : `${f2.n}/${f2.d}`;
+            const finalN = mode === 'add' ? n1A + n2A : n1A - n2A;
+            document.getElementById('lbl3').innerText = `${finalN}/${den}`;
+            animate(n1A, n2A, den, mode, food);
+        } else {
+            animate(n1A, 0, den, mode, food);
+        }
     }
 
-    function parse(id) {
-        const [n, d] = document.getElementById(id).value.split('/').map(Number);
-        return { n: n || 0, d: d || 1 };
+    function explain() {
+        if (!lastResult) return;
+        const ctx = lastResult;
+        let html = "";
+
+        if (ctx.mode === 'view') {
+            html += `<p>Olha só! A fração <strong>${ctx.f1.n}/${ctx.f1.d}</strong> significa que a gente dividiu algo em <strong>${ctx.f1.d}</strong> pedaços iguais e pegou <strong>${ctx.f1.n}</strong> deles.</p>`;
+            if (ctx.f1.n > ctx.f1.d) {
+                html += `<p>Como pegamos mais pedaços do que uma coisa inteira tem, precisamos de mais de uma! Isso se chama <strong>fração imprópria</strong>.</p>`;
+            }
+        } else {
+            // Explicação de Soma/Subtração
+            html += `<p>Para fazer a conta, precisamos que os pedaços tenham o <strong>mesmo tamanho</strong>.</p>`;
+            
+            if (ctx.f1.d !== ctx.commonDen || ctx.f2.d !== ctx.commonDen) {
+                html += `<p>Por isso, transformamos tudo para dividir em <strong>${ctx.commonDen}</strong> pedaços:</p>`;
+                html += `<ul>`;
+                html += `<li>A primeira virou <strong>${ctx.n1A}/${ctx.commonDen}</strong></li>`;
+                html += `<li>A segunda virou <strong>${ctx.n2A}/${ctx.commonDen}</strong></li>`;
+                html += `</ul>`;
+            } else {
+                html += `<p>Como os dois já estão divididos em <strong>${ctx.commonDen}</strong>, é só fazer a conta direto!</p>`;
+            }
+
+            if (ctx.mode === 'add') {
+                const total = ctx.n1A + ctx.n2A;
+                html += `<p>Agora somamos os pedaços: <strong>${ctx.n1A} + ${ctx.n2A} = ${total}</strong>.</p>`;
+                html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+            } else {
+                const total = ctx.n1A - ctx.n2A;
+                html += `<p>Agora subtraímos os pedaços: <strong>${ctx.n1A} - ${ctx.n2A} = ${total}</strong>.</p>`;
+                
+                if (total < 0) {
+                    html += `<p>Ops! Tiramos mais pedaços do que tínhamos (<strong>${ctx.n1A}</strong> menos <strong>${ctx.n2A}</strong>).</p>`;
+                    html += `<p>O resultado é negativo, por isso virou uma <strong>dívida</strong> de <strong>${Math.abs(total)}/${ctx.commonDen}</strong>!</p>`;
+                } else {
+                    html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+                }
+            }
+        }
+
+        document.getElementById('explainContent').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('explainModal')).show();
+    }
+
+    function drawMoney(ctx, amount) {
+        // Limpa a área
+        ctx.clearRect(0,0,300,300);
+        
+        // Define o texto de dívida
+        ctx.font = "bold 24px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#C62828";
+        ctx.textAlign = "center";
+        ctx.fillText("Ficou devendo!", 150, 40);
+        
+        // Desenha uma nota de dinheiro estilizada
+        const cx = 150, cy = 150;
+        const w = 220, h = 100;
+        const x = cx - w/2;
+        const y = cy - h/2;
+        
+        // Sombra
+        ctx.fillStyle = "rgba(0,0,0,0.1)";
+        roundRect(ctx, x+5, y+5, w, h, 10, true, false);
+        
+        // Nota base
+        ctx.fillStyle = "#E0E0E0"; // Cor de papel moeda genérico/cinza
+        ctx.strokeStyle = "#9E9E9E";
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, y, w, h, 10, true, true);
+        
+        // Detalhes da nota
+        ctx.strokeStyle = "#BDBDBD";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x+20, y+10); ctx.lineTo(x+w-20, y+10);
+        ctx.moveTo(x+20, y+h-10); ctx.lineTo(x+w-20, y+h-10);
+        ctx.stroke();
+        
+        // Círculo central com valor
+        ctx.beginPath();
+        ctx.arc(cx, cy, 35, 0, Math.PI*2);
+        ctx.fillStyle = "white";
+        ctx.fill();
+        ctx.strokeStyle = "#9E9E9E";
+        ctx.stroke();
+        
+        // Valor da dívida
+        ctx.fillStyle = "#C62828";
+        ctx.font = "bold 28px monospace";
+        ctx.fillText("R$ " + Math.abs(amount).toFixed(2), cx, cy + 10);
+        
+        // Faixa vermelha de "DÍVIDA"
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-0.2);
+        ctx.fillStyle = "rgba(198, 40, 40, 0.8)";
+        ctx.fillRect(-80, -15, 160, 30);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText("DÍVIDA", 0, 6);
+        ctx.restore();
     }
 
     function animate(n1, n2, den, mode, food) {
-        let progress = 0;
-        const ctx1 = document.getElementById('can1').getContext('2d');
-        const ctx2 = document.getElementById('can2').getContext('2d');
-        const ctx3 = document.getElementById('can3').getContext('2d');
+        let p = 0;
+        const ctx1 = document.getElementById('c1').getContext('2d');
+        const ctx2 = document.getElementById('c2').getContext('2d');
+        const ctx3 = document.getElementById('c3').getContext('2d');
 
-        function step() {
-            progress += 0.02;
-            // Efeito de elasticidade simples
-            let ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-            if (progress > 1) ease = 1;
+        function loop() {
+            p += 0.01;
+            let ease = p < 1 ? 1 - Math.pow(1 - p, 3) : 1; 
+            
+            ctx1.clearRect(0,0,300,300);
+            if (mode !== 'view') {
+                ctx2.clearRect(0,0,300,300);
+                // Não limpamos ctx3 aqui se for dívida, pois drawMoney já limpa. 
+                // Mas para garantir animação correta, limpamos se não for dívida ou sempre limpamos e redesenhamos.
+                // Melhor limpar sempre para garantir.
+                ctx3.clearRect(0,0,300,300);
+            }
 
-            ctx1.clearRect(0,0,500,200);
-            ctx2.clearRect(0,0,500,200);
-            ctx3.clearRect(0,0,500,220);
-
-            draw(ctx1, n1 * ease, den, food, "#FF5722");
+            drawAsset(ctx1, n1 * ease, den, food, "#FF7043", n1);
             
             if (mode !== 'view') {
-                draw(ctx2, n2 * ease, den, food, "#FF9800");
-                const res = mode === 'add' ? (n1 + n2 * ease) : (n1 - n2 * ease);
-                draw(ctx3, Math.max(0, res), den, food, "#4CAF50");
-            } else {
-                draw(ctx3, n1 * ease, den, food, "#2196F3");
+                drawAsset(ctx2, n2 * ease, den, food, "#FFA726", n2);
+                
+                const rawRes = mode === 'add' ? (n1 + n2) : (n1 - n2);
+                const isNegative = rawRes < 0;
+                
+                if (isNegative && p > 0.1) {
+                    // Visualização de dívida
+                    // Usamos rawRes para mostrar o valor. 
+                    // Como é fração, o "valor" monetário seria proporcional.
+                    // Vamos simplificar e mostrar o valor da fração negativa como "valor devido"
+                    // Mas o pedido menciona "notas de dinheiro". Vamos desenhar a nota.
+                    // Para animar, podemos fazer a nota aparecer com fade ou scale.
+                    // Aqui faremos simples: se negativo, desenha a nota.
+                    
+                    // O valor monetário fictício será a fração resultante.
+                    // Ex: -1/3 -> R$ 0.33 (apenas ilustrativo)
+                    const val = rawRes / den;
+                    drawMoney(ctx3, val);
+                } else {
+                     const res = mode === 'add' ? (n1 + n2 * ease) : (n1 - n2 * ease);
+                     const cap = mode === 'add' ? (n1 + n2) : n1;
+                     // Se for negativo mas ainda estamos animando a subtração "antes" de virar dívida visualmente?
+                     // Na verdade, subtração visual de pizzas é difícil quando vai abaixo de zero.
+                     // Vamos manter o comportamento padrão (Math.max(0...)) até que termine ou se for positivo.
+                     // Mas se o resultado final é negativo, substituimos por dinheiro.
+                     
+                     if (!isNegative) {
+                        drawAsset(ctx3, Math.max(0, res), den, food, "#66BB6A", cap);
+                     }
+                }
             }
 
-            if (progress < 1) anims.push(requestAnimationFrame(step));
+            if (p < 1) animId = requestAnimationFrame(loop);
         }
-        step();
+        loop();
     }
 
-    function draw(ctx, n, d, food, color) {
-        const scale = 1.3;
-        const radius = 60 * scale;
-        const numFigs = Math.max(1, Math.ceil(n / d));
-        const startX = 250 - ((numFigs-1) * 80);
+    function drawAsset(ctx, n, d, type, color, capacity) {
+        const cap = (capacity !== undefined) ? capacity : n;
+        const numShapes = Math.max(1, Math.ceil(cap / d));
+        
+        let cols = 1, rows = 1;
+        if (numShapes === 2) {
+            cols = 2; rows = 1;
+        } else if (numShapes > 2) {
+            cols = Math.ceil(Math.sqrt(numShapes));
+            rows = Math.ceil(numShapes / cols);
+        }
+        
+        const scale = 1 / Math.max(cols, rows);
+        const cellW = 300 / cols;
+        const cellH = 300 / rows;
+        
+        for(let k=0; k<numShapes; k++) {
+            const localN = Math.max(0, Math.min(d, n - k * d));
+            const c = k % cols;
+            const r = Math.floor(k / cols);
+            const posX = c * cellW + cellW / 2;
+            const posY = r * cellH + cellH / 2;
+            
+            ctx.save();
+            ctx.translate(posX, posY);
+            ctx.scale(scale, scale);
+            ctx.translate(-150, -150);
+            drawUnit(ctx, localN, d, type, color);
+            ctx.restore();
+        }
+    }
 
-        for (let f = 0; f < numFigs; f++) {
-            const x = startX + (f * 180);
-            const y = 100;
-
-            if (food === 'pizza') {
-                // Base
-                ctx.beginPath(); ctx.arc(x, y, radius, 0, 2*Math.PI);
-                ctx.fillStyle = "#FFF9C4"; ctx.fill();
-                ctx.strokeStyle = "#F57C00"; ctx.lineWidth = 3; ctx.stroke();
-
-                // Fatias preenchidas
-                for (let i = 0; i < d; i++) {
-                    const s = (i * 2 * Math.PI) / d, e = ((i+1) * 2 * Math.PI) / d;
-                    const fill = Math.max(0, Math.min(1, n - (f * d + i)));
-                    if (fill > 0) {
-                        ctx.beginPath(); ctx.moveTo(x, y);
-                        ctx.arc(x, y, radius, s, s + (e-s)*fill);
-                        ctx.fillStyle = color; ctx.fill();
-                        ctx.strokeStyle = "white"; ctx.lineWidth = 1; ctx.stroke();
+    function drawUnit(ctx, n, d, type, color) {
+        const cx = 150, cy = 150, r = 130;
+        
+        if (type === 'pizza') {
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+            ctx.fillStyle = "#E6A65C"; ctx.fill();
+            ctx.beginPath(); ctx.arc(cx, cy, r - 10, 0, Math.PI*2);
+            ctx.fillStyle = "#FFF59D"; ctx.fill();
+            for(let i=0; i<d; i++) {
+                const start = (i * 2 * Math.PI) / d - (Math.PI/2);
+                const end = ((i+1) * 2 * Math.PI) / d - (Math.PI/2);
+                ctx.beginPath(); ctx.moveTo(cx, cy); 
+                ctx.arc(cx, cy, r-10, start, end); ctx.lineTo(cx, cy);
+                ctx.strokeStyle = "#FBC02D"; ctx.stroke();
+                
+                // Se n for 0, fillAmount será 0 ou menor, e nada será desenhado aqui
+                const fillAmount = Math.max(0, Math.min(1, n - i));
+                
+                if (fillAmount > 0) {
+                    ctx.beginPath(); ctx.moveTo(cx, cy);
+                    const currEnd = start + (end - start) * fillAmount;
+                    ctx.arc(cx, cy, r-10, start, currEnd); ctx.lineTo(cx, cy);
+                    ctx.fillStyle = color; ctx.fill();
+                    if (fillAmount > 0.8) {
+                        ctx.save(); ctx.clip(); ctx.fillStyle = "#B71C1C";
+                        drawPepperoni(ctx, cx, cy, r, start, end, (i + 1) * 123);
+                        ctx.restore();
                     }
-                    // Divisórias
-                    ctx.beginPath(); ctx.moveTo(x, y);
-                    ctx.lineTo(x + Math.cos(s)*radius, y + Math.sin(s)*radius);
-                    ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
                 }
-            } else {
-                const w = 150, h = 80;
-                ctx.fillStyle = "#EFEBE9"; ctx.fillRect(x - w/2, y - h/2, w, h);
-                const pw = w / d;
-                for (let i = 0; i < d; i++) {
-                    const fill = Math.max(0, Math.min(1, n - (f * d + i)));
-                    if (fill > 0) {
-                        ctx.fillStyle = "#6D4C41";
-                        ctx.fillRect(x - w/2 + (i*pw), y - h/2, pw*fill, h);
-                    }
-                    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-                    ctx.strokeRect(x - w/2 + (i*pw), y - h/2, pw, h);
+            }
+        } else {
+            const w = 240, h = 180, x0 = cx - w/2, y0 = cy - h/2;
+            ctx.fillStyle = "#5D4037"; roundRect(ctx, x0-5, y0-5, w+10, h+10, 10, true, false);
+            const cols = d <= 4 ? d : Math.ceil(Math.sqrt(d)), rows = Math.ceil(d / cols);
+            const pieceW = w / cols, pieceH = h / rows;
+            for(let i=0; i<d; i++) {
+                const c = i % cols, r_idx = Math.floor(i / cols);
+                const px = x0 + c * pieceW, py = y0 + r_idx * pieceH;
+                const fillAmount = Math.max(0, Math.min(1, n - i));
+                
+                ctx.fillStyle = "#8D6E63"; ctx.fillRect(px + 2, py + 2, pieceW - 4, pieceH - 4);
+                if (fillAmount > 0) {
+                    ctx.fillStyle = color; ctx.fillRect(px + 2, py + 2, (pieceW - 4) * fillAmount, pieceH - 4);
+                    ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.fillRect(px + 2, py + 2, ((pieceW - 4)*fillAmount), (pieceH - 4)/2);
                 }
-                ctx.strokeStyle = "#3E2723"; ctx.lineWidth = 3; ctx.strokeRect(x - w/2, y - h/2, w, h);
             }
         }
     }
-    toggleInputs();
-    run();
+    function drawPepperoni(ctx, cx, cy, r, start, end, seed) {
+        const angleMid = (start + end) / 2; const dists = [0.4, 0.6, 0.7]; const offsets = [-0.1, 0.1, -0.05];
+        for(let k=0; k<3; k++) {
+            const dist = r * dists[k], ang = angleMid + offsets[k];
+            ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, 6, 0, Math.PI*2); ctx.fill();
+        }
+    }
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+        ctx.beginPath(); ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+        ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+        ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r); ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+        ctx.closePath(); if (fill) ctx.fill(); if (stroke) ctx.stroke();
+    }
+
+    updateUI(); // Inicia
 </script>
 </body>
 </html>
