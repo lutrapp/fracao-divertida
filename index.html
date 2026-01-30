@@ -134,8 +134,12 @@
         }
 
         canvas { 
-            width: 110px; 
-            height: 110px;
+            width: 42vw; 
+            height: 42vw;
+            max-width: 180px;
+            max-height: 180px;
+            min-width: 140px;
+            min-height: 140px;
             display: block;
             margin: 0 auto;
             filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.1));
@@ -175,7 +179,7 @@
         footer { font-size: 0.8rem; color: #a1887f; margin-top: 15px; }
 
         @media (min-width: 500px) {
-            canvas { width: 140px; height: 140px; }
+            canvas { width: 180px; height: 180px; max-width: none; max-height: none; }
             .fraction-input { width: 90px !important; }
         }
     </style>
@@ -209,17 +213,17 @@
 
             <div class="controls-row">
                 <div id="fg1" class="fraction-group">
-                    <input type="number" id="n1" class="fraction-part" value="1" inputmode="numeric">
+                    <input type="number" id="n1" class="fraction-part" value="1" inputmode="numeric" max="100">
                     <div class="fraction-line"></div>
-                    <input type="number" id="d1" class="fraction-part" value="2" inputmode="numeric" min="0">
+                    <input type="number" id="d1" class="fraction-part" value="2" inputmode="numeric" min="0" max="100">
                 </div>
                 
                 <span id="uiSign" class="op-sign d-none">+</span>
                 
                 <div id="fg2" class="fraction-group d-none">
-                    <input type="number" id="n2" class="fraction-part" value="1" inputmode="numeric">
+                    <input type="number" id="n2" class="fraction-part" value="1" inputmode="numeric" max="100">
                     <div class="fraction-line"></div>
-                    <input type="number" id="d2" class="fraction-part" value="3" inputmode="numeric" min="0">
+                    <input type="number" id="d2" class="fraction-part" value="3" inputmode="numeric" min="0" max="100">
                 </div>
             </div>
 
@@ -390,6 +394,16 @@
             return;
         }
 
+        // --- REGRA DE LIMITES (MÁXIMO 100) ---
+        if (Math.abs(f1.n) > 100 || Math.abs(f1.d) > 100) {
+            showError("Vamos com calma! Use números até 100 para não travar a cozinha.", f1.el);
+            return;
+        }
+        if (mode !== 'view' && (Math.abs(f2.n) > 100 || Math.abs(f2.d) > 100)) {
+            showError("Vamos com calma! Use números até 100 para não travar a cozinha.", f2.el);
+            return;
+        }
+
         // --- REGRA MATEMÁTICA: ZERO NO NUMERADOR ---
         // Se f1.n for 0, o desenho será vazio (correto visualmente).
         // Nenhuma ação extra necessária, a matemática funciona (0/5 = 0).
@@ -430,9 +444,24 @@
         let html = "";
 
         if (ctx.mode === 'view') {
+            const whole = ctx.f1.n / ctx.f1.d;
+            
             html += `<p>Olha só! A fração <strong>${ctx.f1.n}/${ctx.f1.d}</strong> significa que a gente dividiu algo em <strong>${ctx.f1.d}</strong> pedaços iguais e pegou <strong>${ctx.f1.n}</strong> deles.</p>`;
-            if (ctx.f1.n > ctx.f1.d) {
-                html += `<p>Como pegamos mais pedaços do que uma coisa inteira tem, precisamos de mais de uma! Isso se chama <strong>fração imprópria</strong>.</p>`;
+            
+            if (Number.isInteger(whole)) {
+                html += `<div class="alert alert-success border-success" role="alert">`;
+                html += `<h5 class="alert-heading fw-bold">🍕 Uau! Deu exato! 🎉</h5>`;
+                html += `<p class="mb-0">Se a gente juntar todos esses pedaços, formamos exatamente <strong>${whole}</strong> coisas inteiras! Nem sobra farelo!</p>`;
+                html += `<hr><p class="mb-0 small">Isso acontece quando o número de cima dá para dividir certinho pelo de baixo.</p>`;
+                html += `</div>`;
+            } else if (ctx.f1.n > ctx.f1.d) {
+                const wholes = Math.floor(whole);
+                const remainder = ctx.f1.n % ctx.f1.d;
+                html += `<div class="alert alert-warning border-warning" role="alert">`;
+                html += `<h6 class="fw-bold">😲 É muita comida!</h6>`;
+                html += `<p>Como pegamos mais pedaços do que uma coisa inteira tem, precisamos de mais de uma!</p>`;
+                html += `<p class="mb-0">Isso dá <strong>${wholes}</strong> inteiras e ainda sobra <strong>${remainder}/${ctx.f1.d}</strong>.</p>`;
+                html += `</div>`;
             }
         } else {
             // Explicação de Soma/Subtração
@@ -450,17 +479,37 @@
 
             if (ctx.mode === 'add') {
                 const total = ctx.n1A + ctx.n2A;
+                const wholeTotal = total / ctx.commonDen;
+                
                 html += `<p>Agora somamos os pedaços: <strong>${ctx.n1A} + ${ctx.n2A} = ${total}</strong>.</p>`;
-                html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+                
+                if (Number.isInteger(wholeTotal)) {
+                     html += `<div class="alert alert-success border-success" role="alert">`;
+                     html += `<h5 class="alert-heading fw-bold">🎉 Resultado Inteiro!</h5>`;
+                     html += `<p class="mb-0">A soma deu <strong>${total}/${ctx.commonDen}</strong>, que é igual a <strong>${wholeTotal}</strong> inteiros!</p>`;
+                     html += `</div>`;
+                } else {
+                    html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+                }
             } else {
                 const total = ctx.n1A - ctx.n2A;
                 html += `<p>Agora subtraímos os pedaços: <strong>${ctx.n1A} - ${ctx.n2A} = ${total}</strong>.</p>`;
                 
                 if (total < 0) {
-                    html += `<p>Ops! Tiramos mais pedaços do que tínhamos (<strong>${ctx.n1A}</strong> menos <strong>${ctx.n2A}</strong>).</p>`;
-                    html += `<p>O resultado é negativo, por isso virou uma <strong>dívida</strong> de <strong>${Math.abs(total)}/${ctx.commonDen}</strong>!</p>`;
+                    html += `<div class="alert alert-danger border-danger" role="alert">`;
+                    html += `<p><strong>Ops!</strong> Tiramos mais pedaços do que tínhamos (<strong>${ctx.n1A}</strong> menos <strong>${ctx.n2A}</strong>).</p>`;
+                    html += `<p class="mb-0">O resultado é negativo, por isso virou uma <strong>dívida</strong> de <strong>${Math.abs(total)}/${ctx.commonDen}</strong>!</p>`;
+                    html += `</div>`;
                 } else {
-                    html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+                    const wholeTotal = total / ctx.commonDen;
+                    if (Number.isInteger(wholeTotal)) {
+                         html += `<div class="alert alert-success border-success" role="alert">`;
+                         html += `<h5 class="alert-heading fw-bold">🎉 Resultado Inteiro!</h5>`;
+                         html += `<p class="mb-0">A subtração deu <strong>${total}/${ctx.commonDen}</strong>, que é igual a <strong>${wholeTotal}</strong> inteiros!</p>`;
+                         html += `</div>`;
+                    } else {
+                        html += `<p class="fw-bold text-success">Resultado final: ${total}/${ctx.commonDen}</p>`;
+                    }
                 }
             }
         }
