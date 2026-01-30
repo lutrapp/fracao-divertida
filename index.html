@@ -40,24 +40,44 @@
             border-radius: 15px;
             margin-bottom: 15px;
             position: relative;
+            min-height: 100px;
         }
 
-        .fraction-input { 
-            width: 75px !important; 
-            font-size: 1.3rem; 
+        .fraction-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            border: 2px solid #FFB74D;
+            transition: all 0.3s;
+        }
+
+        .fraction-part { 
+            width: 60px !important; 
+            font-size: 1.2rem; 
             text-align: center; 
-            border: 2px solid #FFB74D; 
-            border-radius: 12px !important; 
+            border: none;
+            background: transparent;
             color: #E65100; 
             font-weight: bold;
-            padding: 5px;
-            transition: all 0.3s;
+            padding: 2px;
+            outline: none;
+        }
+        
+        .fraction-line {
+            width: 100%;
+            height: 2px;
+            background-color: #E65100;
+            margin: 2px 0;
         }
         
         /* Animação de erro (tremida) */
         .input-error {
             border-color: #d32f2f !important;
-            background-color: #ffebee;
+            background-color: #ffebee !important;
             animation: shake 0.4s ease-in-out;
         }
 
@@ -188,9 +208,19 @@
             <div id="errorMsg" class="text-center"></div>
 
             <div class="controls-row">
-                <input type="text" id="inp1" class="fraction-input" value="1/2" inputmode="numeric" placeholder="1/2">
+                <div id="fg1" class="fraction-group">
+                    <input type="number" id="n1" class="fraction-part" value="1" inputmode="numeric">
+                    <div class="fraction-line"></div>
+                    <input type="number" id="d1" class="fraction-part" value="2" inputmode="numeric" min="0">
+                </div>
+                
                 <span id="uiSign" class="op-sign d-none">+</span>
-                <input type="text" id="inp2" class="fraction-input d-none" value="1/3" inputmode="numeric" placeholder="1/3">
+                
+                <div id="fg2" class="fraction-group d-none">
+                    <input type="number" id="n2" class="fraction-part" value="1" inputmode="numeric">
+                    <div class="fraction-line"></div>
+                    <input type="number" id="d2" class="fraction-part" value="3" inputmode="numeric" min="0">
+                </div>
             </div>
 
             <button class="btn btn-cook mb-4" onclick="run()">PREPARAR PEDIDO!</button>
@@ -245,6 +275,27 @@
   </div>
 </div>
 
+<!-- Modal Divisão por Zero -->
+<div class="modal fade" id="zeroModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 4px solid #F44336;">
+      <div class="modal-header" style="background-color: #FFEBEE; border-bottom: 2px solid #FFCDD2; border-radius: 16px 16px 0 0;">
+        <h5 class="modal-title fw-bold" style="color: #C62828;">⛔ Opa! Algo deu errado...</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center" style="font-size: 1.1rem; color: #5D4037; line-height: 1.6;">
+        <p class="fw-bold" style="font-size: 3rem;">🚫</p>
+        <p>Não dá para dividir nada por <strong>ZERO</strong>!</p>
+        <p>Imagine que você tem uma pizza inteira e quer dividir para <strong>0 pessoas</strong>. Não faz sentido, né? A pizza não pode desaparecer!</p>
+        <p class="text-muted small">Matematicamente, dividir por zero é impossível.</p>
+      </div>
+      <div class="modal-footer" style="border-top: none; justify-content: center;">
+        <button type="button" class="btn btn-danger fw-bold text-white" data-bs-dismiss="modal" style="border-radius: 20px;">Entendi, vou corrigir!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let animId = null;
@@ -254,7 +305,7 @@
         const m = document.getElementById('mode').value;
         const isView = m === 'view';
         
-        document.getElementById('inp2').classList.toggle('d-none', isView);
+        document.getElementById('fg2').classList.toggle('d-none', isView);
         document.getElementById('uiSign').classList.toggle('d-none', isView);
         document.getElementById('uiSign').innerText = m === 'add' ? '+' : '-';
 
@@ -271,31 +322,22 @@
         run(); // Recalcula para atualizar a visualização
     }
 
-    function parse(id) {
-        const el = document.getElementById(id);
-        const val = el.value.trim();
+    function parse(suffix) {
+        const groupEl = document.getElementById('fg' + suffix);
+        const nEl = document.getElementById('n' + suffix);
+        const dEl = document.getElementById('d' + suffix);
         
         // Remove estado de erro anterior
-        el.classList.remove('input-error');
+        groupEl.classList.remove('input-error');
 
-        // Se estiver vazio
-        if(!val) return { n:0, d:1, el: el };
+        let n = parseInt(nEl.value);
+        let d = parseInt(dEl.value);
 
-        let n, d;
-        if(val.includes('/')) {
-            const parts = val.split('/');
-            n = parseInt(parts[0]);
-            d = parseInt(parts[1]);
-        } else {
-            n = parseInt(val);
-            d = 1;
-        }
-
-        // Tratamento de NaN (se digitarem letras)
+        // Tratamento de NaN
         if(isNaN(n)) n = 0;
         if(isNaN(d)) d = 1;
 
-        return { n: n, d: d, el: el };
+        return { n: n, d: d, el: groupEl };
     }
 
     function showError(msg, element) {
@@ -307,7 +349,7 @@
 
     function hideError() {
         document.getElementById('errorMsg').style.display = 'none';
-        document.querySelectorAll('.fraction-input').forEach(e => e.classList.remove('input-error'));
+        document.querySelectorAll('.fraction-group').forEach(e => e.classList.remove('input-error'));
     }
 
     function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
@@ -317,19 +359,35 @@
         if (animId) cancelAnimationFrame(animId);
         hideError();
         
-        const f1 = parse('inp1');
-        const f2 = parse('inp2');
+        const f1 = parse(1);
+        const f2 = parse(2);
         const mode = document.getElementById('mode').value;
         const food = document.getElementById('food').value;
 
         // --- REGRA MATEMÁTICA: DIVISÃO POR ZERO ---
-        if (f1.d === 0) {
-            showError("Não dá pra dividir por zero! O número de baixo não pode ser 0.", f1.el);
-            return; // Para o código aqui
+        // Se denominador for zero, mostra modal e limpa tudo
+        if (f1.d === 0 || (mode !== 'view' && f2.d === 0)) {
+            // Limpa visualização
+            document.getElementById('c1').getContext('2d').clearRect(0,0,300,300);
+            document.getElementById('c2').getContext('2d').clearRect(0,0,300,300);
+            document.getElementById('c3').getContext('2d').clearRect(0,0,300,300);
+            document.getElementById('lbl1').innerText = "";
+            document.getElementById('lbl2').innerText = "";
+            document.getElementById('lbl3').innerText = "";
+            
+            // Abre modal explicativo
+            new bootstrap.Modal(document.getElementById('zeroModal')).show();
+            return; 
         }
-        if (mode !== 'view' && f2.d === 0) {
-            showError("Não dá pra dividir por zero! O número de baixo não pode ser 0.", f2.el);
-            return; // Para o código aqui
+
+        // --- REGRA MATEMÁTICA: DENOMINADOR NEGATIVO ---
+        if (f1.d < 0) {
+            showError("O número de baixo não pode ser negativo! Use apenas números positivos.", f1.el);
+            return;
+        }
+        if (mode !== 'view' && f2.d < 0) {
+            showError("O número de baixo não pode ser negativo! Use apenas números positivos.", f2.el);
+            return;
         }
 
         // --- REGRA MATEMÁTICA: ZERO NO NUMERADOR ---
