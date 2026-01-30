@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chuva de Pizzas! 🍕</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #FFF3E0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; /* Previne zoom e scroll no celular */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, #fff8e1 10%, #ffe0b2 90%);
+        }
+
+        /* HUD (Heads Up Display) */
+        .hud-top {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none; /* Deixa clicar no canvas se precisar */
+        }
+
+        .score-box, .timer-box {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 3px solid #FF9800;
+            box-shadow: 0 4px 0 #F57C00;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.5rem;
+            color: #E65100;
+        }
+
+        /* Área do Canvas */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Botões de Resposta */
+        .answers-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 20;
+            flex-wrap: wrap;
+        }
+
+        .btn-answer {
+            background: white;
+            border: 3px solid #4CAF50;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #2E7D32;
+            box-shadow: 0 5px 0 #2E7D32;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .btn-answer:active {
+            transform: translateY(5px);
+            box-shadow: none;
+        }
+        
+        .btn-answer.wrong {
+            background: #FFEBEE;
+            border-color: #D32F2F;
+            color: #C62828;
+            box-shadow: 0 5px 0 #B71C1C;
+            animation: shake 0.4s;
+        }
+
+        .btn-answer.correct {
+            background: #E8F5E9;
+            border-color: #43A047;
+            color: #1B5E20;
+            transform: scale(1.1);
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* Overlay de Start/End */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .title-game {
+            font-family: 'Fredoka One', cursive;
+            font-size: 3rem;
+            color: #E65100;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #FFE0B2;
+        }
+
+        .btn-start {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            box-shadow: 0 6px 0 #E65100;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-start:hover { transform: scale(1.05); }
+        .btn-start:active { transform: translateY(6px); box-shadow: none; }
+
+        /* Partículas de explosão */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: pop 0.6s ease-out forwards;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        @media (max-width: 600px) {
+            .btn-answer {
+                padding: 10px 20px;
+                font-size: 1.5rem;
+                min-width: 80px;
+                flex: 1 1 40%; /* 2 por linha no mobile */
+            }
+            .title-game { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- HUD -->
+    <div class="hud-top">
+        <div class="score-box">⭐ <span id="scoreVal">0</span></div>
+        <div class="timer-box">⏰ <span id="timeVal">60</span>s</div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Respostas -->
+    <div class="answers-panel" id="answersPanel" style="display: none;">
+        <button class="btn-answer" onclick="checkAnswer(this)"></button>
+        <button class="btn-answer" onclick="checkAnswer(this)"></button>
+        <button class="btn-answer" onclick="checkAnswer(this)"></button>
+        <button class="btn-answer" onclick="checkAnswer(this)"></button>
+    </div>
+
+    <!-- Tela Inicial -->
+    <div id="startScreen" class="overlay">
+        <div class="title-game">🍕 Chuva de Pizzas!</div>
+        <p class="fs-4 text-muted mb-4">Acerte a fração antes que a pizza caia!</p>
+        <button class="btn-start" onclick="startGame()">JOGAR AGORA</button>
+        <a href="index.html" class="btn btn-secondary rounded-pill mt-3 fw-bold">Voltar para a Cozinha</a>
+    </div>
+
+    <!-- Tela Final -->
+    <div id="endScreen" class="overlay" style="display: none;">
+        <div class="title-game">Fim de Jogo! 👨‍🍳</div>
+        <h2 class="mb-3">Sua Pontuação: <span id="finalScore" class="text-success fw-bold">0</span></h2>
+        <p id="feedbackMsg" class="fs-5 text-muted mb-4"></p>
+        <button class="btn-start" onclick="startGame()">JOGAR DE NOVO</button>
+        <br>
+        <a href="index.html" class="btn btn-outline-warning rounded-pill mt-3 fw-bold border-2" style="font-size: 1.2rem; color: #E65100; border-color: #FF9800;">↩️ Voltar para a Cozinha</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    // Configurações do Jogo
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let score = 0;
+    let timeLeft = 60;
+    let gameInterval;
+    let pizzaInterval;
+    let currentPizza = null;
+    let isPlaying = false;
+    let animationId;
+
+    // Ajuste de Canvas
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Classe Pizza
+    class Pizza {
+        constructor() {
+            this.d = [2, 3, 4, 5, 6, 8][Math.floor(Math.random() * 6)]; // Denominadores comuns
+            this.n = Math.floor(Math.random() * this.d) + 1; // Numerador entre 1 e d
+            
+            // Posição inicial
+            this.radius = Math.min(canvas.width, canvas.height) * 0.15; // 15% da tela
+            this.x = canvas.width / 2;
+            this.y = -this.radius - 20; // Começa fora da tela
+            
+            // Velocidade (aumenta levemente com o tempo?)
+            this.speed = canvas.height / 600; // Mais lento (era 300)
+            if (this.speed < 0.8) this.speed = 0.8;
+            
+            this.rotation = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+        }
+
+        update() {
+            this.y += this.speed;
+            this.rotation += this.rotationSpeed;
+            
+            // Se tocar no chão (área dos botões)
+            const floorY = canvas.height - 150; // Aproximado altura dos botões
+            if (this.y > floorY + this.radius) {
+                return false; // Morreu/Passou
+            }
+            return true;
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+
+            // Desenhar Pizza Base
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFCC80"; // Borda
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#E65100";
+            ctx.stroke();
+
+            // Recheio (Queijo)
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 0.9, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFF9C4"; 
+            ctx.fill();
+
+            // Fatias (Frações)
+            const sliceAngle = (Math.PI * 2) / this.d;
+            
+            // Desenha as fatias preenchidas (com pepperoni)
+            for (let i = 0; i < this.n; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, this.radius * 0.9, i * sliceAngle, (i + 1) * sliceAngle);
+                ctx.lineTo(0, 0);
+                ctx.fillStyle = "#FF7043"; // Molho/Recheio destaque
+                ctx.fill();
+                ctx.stroke();
+
+                // Pepperoni
+                const midAngle = (i * sliceAngle) + (sliceAngle / 2);
+                const pepX = Math.cos(midAngle) * (this.radius * 0.5);
+                const pepY = Math.sin(midAngle) * (this.radius * 0.5);
+                
+                ctx.beginPath();
+                ctx.arc(pepX, pepY, this.radius * 0.08, 0, Math.PI * 2);
+                ctx.fillStyle = "#D32F2F";
+                ctx.fill();
+            }
+
+            // Linhas de divisão das fatias vazias
+            for (let i = this.n; i < this.d; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, this.radius * 0.9, i * sliceAngle, (i + 1) * sliceAngle);
+                ctx.lineTo(0, 0);
+                ctx.strokeStyle = "#F9A825";
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+    }
+
+    // Lógica do Jogo
+    function startGame() {
+        score = 0;
+        timeLeft = 60;
+        document.getElementById('scoreVal').innerText = score;
+        document.getElementById('timeVal').innerText = timeLeft;
+        
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('endScreen').style.display = 'none';
+        document.getElementById('answersPanel').style.display = 'flex';
+        
+        isPlaying = true;
+        spawnPizza();
+        gameLoop();
+        
+        // Timer global
+        clearInterval(gameInterval);
+        gameInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timeVal').innerText = timeLeft;
+            
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function spawnPizza() {
+        currentPizza = new Pizza();
+        generateOptions(currentPizza.n, currentPizza.d);
+    }
+
+    function generateOptions(correctN, correctD) {
+        const correctVal = correctN / correctD;
+        const options = new Set();
+        options.add(`${correctN}/${correctD}`);
+
+        while (options.size < 4) {
+            // Gera opções erradas plausíveis
+            let n, d;
+            const type = Math.random();
+            
+            if (type < 0.3) {
+                // Inverte (d/n) se possível
+                n = correctD; d = correctN;
+            } else if (type < 0.6) {
+                // Mesmo denominador, numerador diferente
+                d = correctD;
+                n = Math.max(1, correctN + (Math.random() < 0.5 ? 1 : -1));
+            } else {
+                // Totalmente aleatório
+                d = [2, 3, 4, 5, 6, 8][Math.floor(Math.random() * 6)];
+                n = Math.floor(Math.random() * d) + 1;
+            }
+
+            // Validações básicas
+            if (d === 0) d = 2; // Segurança
+            if (n === 0) n = 1;
+
+            options.add(`${n}/${d}`);
+        }
+
+        // Embaralha e coloca nos botões
+        const optsArray = Array.from(options);
+        optsArray.sort(() => Math.random() - 0.5);
+
+        const btns = document.querySelectorAll('.btn-answer');
+        btns.forEach((btn, i) => {
+            btn.innerText = optsArray[i];
+            btn.classList.remove('correct', 'wrong');
+            btn.dataset.val = optsArray[i];
+            btn.disabled = false;
+        });
+    }
+
+    function gameLoop() {
+        if (!isPlaying) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (currentPizza) {
+            const alive = currentPizza.update();
+            currentPizza.draw(ctx);
+
+            if (!alive) {
+                // Pizza caiu no chão!
+                shakeScreen();
+                spawnPizza(); // Nova pizza
+                // Penalidade? O usuário pediu apenas "acaba em 10s".
+                // Vamos deixar sem penalidade de pontos, só perde a chance de pontuar aquela.
+            }
+        }
+
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function checkAnswer(btn) {
+        if (!isPlaying || !currentPizza) return;
+
+        const val = btn.dataset.val;
+        const correctStr = `${currentPizza.n}/${currentPizza.d}`;
+
+        if (val === correctStr) {
+            // Acertou!
+            btn.classList.add('correct');
+            score += 10;
+            document.getElementById('scoreVal').innerText = score;
+            
+            // Confete
+            confetti({
+                particleCount: 50,
+                spread: 60,
+                origin: { y: 0.8, x: btn.getBoundingClientRect().left / window.innerWidth }
+            });
+
+            // Próxima pizza
+            setTimeout(() => {
+                spawnPizza();
+            }, 200);
+        } else {
+            // Errou
+            btn.classList.add('wrong');
+            btn.disabled = true;
+            score = Math.max(0, score - 5); // Penalidade pequena
+            document.getElementById('scoreVal').innerText = score;
+            navigator.vibrate(200); // Vibra no celular
+        }
+    }
+
+    function endGame() {
+        isPlaying = false;
+        clearInterval(gameInterval);
+        cancelAnimationFrame(animationId);
+        
+        document.getElementById('answersPanel').style.display = 'none';
+        document.getElementById('endScreen').style.display = 'flex';
+        document.getElementById('finalScore').innerText = score;
+        
+        let msg = "";
+        if (score > 100) msg = "Uau! Você é um Mestre Pizzaiolo! 🍕👑";
+        else if (score > 50) msg = "Mandou bem na cozinha! 👨‍🍳";
+        else msg = "Continue treinando para não queimar a pizza! 🔥";
+        
+        document.getElementById('feedbackMsg').innerText = msg;
+        
+        // Chuva de confete final
+        if (score > 0) {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                particleCount: 5,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 }
+                });
+                confetti({
+                particleCount: 5,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 }
+                });
+
+                if (Date.now() < end) {
+                requestAnimationFrame(frame);
+                }
+            }());
+        }
+    }
+
+    function shakeScreen() {
+        document.body.style.transform = "translate(5px, 5px)";
+        setTimeout(() => {
+            document.body.style.transform = "translate(-5px, -5px)";
+            setTimeout(() => {
+                document.body.style.transform = "translate(0, 0)";
+            }, 50);
+        }, 50);
+    }
+
+</script>
+</body>
+</html>
